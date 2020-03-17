@@ -23,27 +23,13 @@
 # Python 3
 import tkinter as tk
 from tkinter import filedialog
+from tkinter import messagebox
 import xml.dom.minidom
 import csv
 import time
  
 # Liste des drivers dans FactoryIO
-driver_list = ["Advantech4750",
-    "Advantech4704",
-    "AllenBradleyLogix5000",
-    "AllenBradleyMicro800",
-    "AllenBradleyMicroLogix",
-    "AllenBradleySLC5",
-    "Automgen",
-    "ControlIO",
-    "MHJ",
-    "ModbusTCPClient",
-    "ModbusTCPServer",
-    "OPCClientDA",
-    "SiemensLOGOTCP",
-    "SiemensS7300S7400TCP",
-    "SiemensS71200S71500TCP",
-    "SiemensS7PLCSIM"]
+driver_list = ["ModbusTCPClient"]
 driver_name = ""
 
 # Liste des drivers offset FactoryIO
@@ -74,7 +60,7 @@ class App(tk.Tk):
         self.lbl_driver.grid(row=0, column=0, sticky="w")
         
         opt_driver_name = tk.StringVar()
-        opt_driver_name.set(driver_list[9])
+        opt_driver_name.set(driver_list[0])
         self.opt_driver = tk.OptionMenu(self, opt_driver_name, *driver_list)
         self.opt_driver.grid(row=0, column=20, sticky="w")
 
@@ -100,13 +86,13 @@ class App(tk.Tk):
  
         self.lbl_txt = tk.Label(self, text="5. Résultat")
         self.lbl_txt.grid(row=4, column=0, sticky="w")
- 
+
     def openFile(self):
         self.filepath = filedialog.askopenfilename(filetypes=[("text files",".factoryio")])
-        self.lbl_export['text'] += " : "+self.filepath
+        self.lbl_export["text"] = "3. Fichier sélectionné : "+self.filepath
         
     def export(self):
-        self.path = filedialog.asksaveasfilename()
+        self.path = filedialog.asksaveasfilename(filetypes=[("text files", ".txt"), ("all files", "*")],defaultextension=".txt")
         if not self.path:
             return False
         # Attention, les fichiers factoryio sont encodés avec un BOM
@@ -123,7 +109,7 @@ def parse_xml_drivers(e):
     output = []
     # Variable tempo pour la liste des Modbus
     driver_item = []
-    driver_name = driver_list[9]
+    driver_name = driver_list[0]
     driver_offset = {}
     # Une fois récupéré le noeud nous allons chercher le ModbusTCPClient
     drivers = doc.getElementsByTagName(driver_name)
@@ -152,9 +138,10 @@ def export_to_csv(dict_data,e):
             writer = csv.DictWriter(csvfile, fieldnames=csv_columns, delimiter="\t")
             for data in dict_data:
                 writer.writerow(data)
-            e.lbl_txt['text'] += " Traitement fini : "+e.path
+            e.lbl_txt["text"] = "Traitement fini : "+e.path
+            tk.messagebox.showinfo(title="Traitement fini", message="Fichier généré : "+e.path)
     except IOError:
-        e.lbl_txt['text'] += "I/O error"
+        e.lbl_txt["text"] = "I/O error"
 
 def prepare_ladder_var(s):
     # Nous ne gardons que les caracteres ASCII valides
