@@ -26,7 +26,6 @@ from tkinter import filedialog
 from tkinter import messagebox
 import xml.dom.minidom
 import csv
-import time
  
 # Liste des drivers dans FactoryIO
 driver_list = ["ModbusTCPClient"]
