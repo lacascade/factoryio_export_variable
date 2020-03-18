@@ -11,3 +11,6 @@
 * step 3 : select the scene saved from factoryIO
 * step 4 : choose the name and place where to store the export
 * import the .txt file as the table variable in EcoStruxure
+
+What is not currently not working efficiently is the adress of variables.
+Haven't tried with all the options for the driver list.
