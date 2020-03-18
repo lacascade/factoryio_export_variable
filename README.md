@@ -6,11 +6,19 @@
 
  How to use it :
 * run the script
+![Start](/images/interface_accueil.png)
 * step 1 : select a driver in the list, by default "ModbusTCPClient" is selected
 * step 2 : select a brand for the plc, by default "Schneider" is selected and is the only one currently
 * step 3 : select the scene saved from factoryIO
+![Choose File](/images/interface_selection_fichier.png)
 * step 4 : choose the name and place where to store the export
+![Export File](/images/interface_choix_export.png)
+![End](/images/interface_fin.png)
 * import the .txt file as the table variable in EcoStruxure
+
+
+
+
 
 What is not currently not working efficiently is the adress of variables.
 Haven't tried with all the options for the driver list.
