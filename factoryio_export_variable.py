@@ -28,8 +28,23 @@ import xml.dom.minidom
 import csv
  
 # Liste des drivers dans FactoryIO
-driver_list = ["ModbusTCPClient"]
-driver_name = ""
+driver_list = ["Advantech4750",
+    "Advantech4704",
+    "AllenBradleyLogix5000",
+    "AllenBradleyMicro800",
+    "AllenBradleyMicroLogix",
+    "AllenBradleySLC5",
+    "Automgen",
+    "ControlIO",
+    "MHJ",
+    "ModbusTCPClient",
+    "ModbusTCPServer",
+    "OPCClientDA",
+    "SiemensLOGOTCP",
+    "SiemensS7300S7400TCP",
+    "SiemensS71200S71500TCP",
+    "SiemensS7PLCSIM"]
+driver_name = driver_list[9]
 
 # Liste des drivers offset FactoryIO
 driver_offset_list = ["BitInputOffset",
@@ -43,7 +58,7 @@ driver_offset_list = ["BitInputOffset",
 
 # Marque du logiciel plc
 brand_name_list = ["Schneider"]
-brand_name = ""
+brand_name = brand_name_list[0]
 
 
 class App(tk.Tk):
@@ -52,23 +67,22 @@ class App(tk.Tk):
         self.initWidgets()
  
     def initWidgets(self):
-
         self.title("Interface export variable")
 
         self.lbl_driver = tk.Label(self, text="1. Sélectionner le driver")
         self.lbl_driver.grid(row=0, column=0, sticky="w")
         
         opt_driver_name = tk.StringVar()
-        opt_driver_name.set(driver_list[0])
-        self.opt_driver = tk.OptionMenu(self, opt_driver_name, *driver_list)
+        opt_driver_name.set(driver_name)
+        self.opt_driver = tk.OptionMenu(self, opt_driver_name, *driver_list, command=self.set_driver_name)
         self.opt_driver.grid(row=0, column=20, sticky="w")
 
         self.lbl_brand = tk.Label(self, text="2. Sélectionner la marque de l'automate")
         self.lbl_brand.grid(row=1, column=0, sticky="w")
 
         opt_brand_name = tk.StringVar()
-        opt_brand_name.set(brand_name_list[0])
-        self.opt_brand = tk.OptionMenu(self, opt_brand_name, *brand_name_list)
+        opt_brand_name.set(brand_name)
+        self.opt_brand = tk.OptionMenu(self, opt_brand_name, *brand_name_list, command=self.set_brand_name)
         self.opt_brand.grid(row=1, column=20, sticky="w")
 
         self.lbl_file = tk.Label(self, text="3. Sélectionner le fichier")
@@ -86,6 +100,14 @@ class App(tk.Tk):
         self.lbl_txt = tk.Label(self, text="5. Résultat")
         self.lbl_txt.grid(row=4, column=0, sticky="w")
 
+    def set_driver_name(self,value):
+        global driver_name
+        driver_name = value
+
+    def set_brand_name(self,value):
+        global brand_name
+        brand_name = value
+
     def openFile(self):
         self.filepath = filedialog.askopenfilename(filetypes=[("text files",".factoryio")])
         self.lbl_export["text"] = "3. Fichier sélectionné : "+self.filepath
@@ -96,19 +118,23 @@ class App(tk.Tk):
             return False
         # Attention, les fichiers factoryio sont encodés avec un BOM
         with open(self.filepath, "r", encoding="utf-8-sig") as FILE:
-            content = parse_xml_drivers(FILE)
-        # Export des variables
-        export_to_csv(content,self)
-        return True
+            try:
+                content = parse_xml_drivers(FILE)
+                # Export des variables
+                export_to_csv(content,self)
+                return True
+            except IndexError:
+                tk.messagebox.showinfo(title="Erreur", message="Problème XML")
+                return False
 
 def parse_xml_drivers(e):
+    """Fonction qui parse le fichier XML"""
     # Utilisons la fonction parse pour analyser le DOM
     doc = xml.dom.minidom.parse(e)
     # Creons la sortie
     output = []
     # Variable tempo pour la liste des Modbus
     driver_item = []
-    driver_name = driver_list[0]
     driver_offset = {}
     # Une fois récupéré le noeud nous allons chercher le ModbusTCPClient
     drivers = doc.getElementsByTagName(driver_name)
@@ -129,6 +155,7 @@ def parse_xml_drivers(e):
     return output
 
 def export_to_csv(dict_data,e):
+    """Fonction export au format tsv"""
     # Export au format TSV
     csv_columns = ["mnemonique","adresse","variable","remarque"]
     #csv_file = e.directory+"export_"+time.strftime("%Y%m%d-%H%M%S")+".txt"
@@ -140,15 +167,16 @@ def export_to_csv(dict_data,e):
             e.lbl_txt["text"] = "Traitement fini : "+e.path
             tk.messagebox.showinfo(title="Traitement fini", message="Fichier généré : "+e.path)
     except IOError:
+        tk.messagebox.showinfo(title="Erreur", message="I/O error")
         e.lbl_txt["text"] = "I/O error"
 
 def prepare_ladder_var(s):
-    # Nous ne gardons que les caracteres ASCII valides
+    """Fonction qui supprime les caracteres ASCII non valides"""
     o = "".join(i for i in s if (ord(i)<123) and ord(i)> 47)
     return o
 
 def create_obj_line(node_tag,c,offset_list):
-    # Nous créons une ligne à partir des attributs des noeuds
+    """Fonction qui génère une ligne d'objet utilisable pour l'export à partir des noeuds"""
     # Attention, il faut chercher par les key
     PIO_item = search_PointIOKey(c, node_tag.getAttribute("Key"))
     # Sélection du type
@@ -167,14 +195,14 @@ def create_obj_line(node_tag,c,offset_list):
     return object_line
 
 def search_PointIOKey(values, PointIOKey):
-    # Retourne un objet cherche par les PointIOKey
+    """Fonction qui retourne un objet cherche par les PointIOKey"""
     for item in values:
         if PointIOKey == item["PointIOKey"]:
             return item
     return None
 
 def return_offset(n,i,offset_list):
-    # Retourne l"offset
+    """Fonction qui retourne l'offset"""
     o = 0
     if(("Output" in i["tagname"]) and ("Binary" in n.tagName)):
         o = offset_list.get("BitOutputOffset",0)
