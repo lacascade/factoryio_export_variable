@@ -26,6 +26,7 @@ from tkinter import filedialog
 from tkinter import messagebox
 import xml.dom.minidom
 import csv
+import json
  
 # Liste des drivers dans FactoryIO
 driver_list = ["Advantech4750",
@@ -56,10 +57,27 @@ driver_offset_list = ["BitInputOffset",
     "NumericInputOffset",
     "NumericOutputOffset"]
 
-# Marque du logiciel plc
-brand_name_list = ["Schneider"]
+# Export au format pour logiciel
+brand_name_export = {
+    "Schneider":{
+        "filetypes":[("text files", ".txt"), ("all files", "*")],
+        "defaultextension":".txt"
+        },
+    "PCVUE/XML":{
+        "filetypes":[("xml files", ".xml"), ("all files", "*")],
+        "defaultextension":".xml"
+        },
+    "JSON":{
+        "filetypes":[("json files", ".json"), ("all files", "*")],
+        "defaultextension":".json"
+        }
+}
+brand_name_list = list(brand_name_export.keys()) # ["Schneider","PCVUE/XML","JSON"]
 brand_name = brand_name_list[0]
 
+
+# XML String PCVUE Import
+pcvue_xml_string = "<Import><Group><Collection type='Variables'/></Group></Import>"
 
 class App(tk.Tk):
     def __init__(self):
@@ -113,7 +131,7 @@ class App(tk.Tk):
         self.lbl_export["text"] = "3. Fichier sélectionné : "+self.filepath
         
     def export(self):
-        self.path = filedialog.asksaveasfilename(filetypes=[("text files", ".txt"), ("all files", "*")],defaultextension=".txt")
+        self.path = filedialog.asksaveasfilename(filetypes=brand_name_export[brand_name]["filetypes"],defaultextension=brand_name_export[brand_name]["defaultextension"])
         if not self.path:
             return False
         # Attention, les fichiers factoryio sont encodés avec un BOM
@@ -121,7 +139,12 @@ class App(tk.Tk):
             try:
                 content = parse_xml_drivers(FILE)
                 # Export des variables
-                export_to_csv(content,self)
+                if(brand_name == "Schneider"):
+                    export_to_csv(content,self)
+                if(brand_name == "PCVUE/XML"):
+                    export_to_PCVUE(content,self)
+                if(brand_name == "JSON"):
+                    export_to_json(content,self)
                 return True
             except IndexError:
                 tk.messagebox.showinfo(title="Erreur", message="Problème XML")
@@ -153,22 +176,6 @@ def parse_xml_drivers(e):
             if (node.nodeType != node.TEXT_NODE):
                 output.append(create_obj_line(node,driver_item,driver_offset))
     return output
-
-def export_to_csv(dict_data,e):
-    """Fonction export au format tsv"""
-    # Export au format TSV
-    csv_columns = ["mnemonique","adresse","variable","remarque"]
-    #csv_file = e.directory+"export_"+time.strftime("%Y%m%d-%H%M%S")+".txt"
-    try:
-        with open(e.path, "w") as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=csv_columns, delimiter="\t")
-            for data in dict_data:
-                writer.writerow(data)
-            e.lbl_txt["text"] = "Traitement fini : "+e.path
-            tk.messagebox.showinfo(title="Traitement fini", message="Fichier généré : "+e.path)
-    except IOError:
-        tk.messagebox.showinfo(title="Erreur", message="I/O error")
-        e.lbl_txt["text"] = "I/O error"
 
 def prepare_ladder_var(s):
     """Fonction qui supprime les caracteres ASCII non valides"""
@@ -214,7 +221,64 @@ def return_offset(n,i,offset_list):
         o = offset_list.get("NumericInputOffset",0)
     return o
 
+def export_to_PCVUE(dict_data,e):
+    """Fonction export au format PCVUE"""
+    #Creation du document xml avant sortie fichier
+    # Utilisons la fonction parse pour analyser le DOM
+    xmldoc = xml.dom.minidom.parseString(pcvue_xml_string)
+    # Une fois récupéré le noeud nous allons chercher le noeud Collection
+    pcvue_collection = xmldoc.getElementsByTagName("Collection")
+    for data in dict_data:
+        newItem = xmldoc.createElement("Item")
+        newItem.setAttribute("id", data["mnemonique"])
+        newItemProperty = xmldoc.createElement("Property")
+        newItemProperty.setAttribute("id", "Type")
+        # Selon doc PCVUE pour les types
+        if((data["variable"]=="EBOOL")|(data["variable"]=="BOOL")):
+            ItemPropertyText = "1"
+        else:
+            ItemPropertyText = "2"
+        newItemPropertyText = xmldoc.createTextNode( ItemPropertyText )
+        newItemProperty.appendChild( newItemPropertyText )
+        newItem.appendChild( newItemProperty )
+        pcvue_collection[0].appendChild( newItem )
+    try:
+        with open(e.path, "w") as xmlfile:
+            xmldoc.writexml(xmlfile)
+            return True
+    except IOError:
+        tk.messagebox.showinfo(title="Erreur", message="I/O error")
+        e.lbl_txt["text"] = "I/O error"
+        return False
  
+def export_to_json(dict_data,e):
+    """Fonction export au format json"""
+    try:
+        with open(e.path, "w") as outfile:
+            json.dump(dict_data, outfile)
+            return True
+    except IOError:
+        tk.messagebox.showinfo(title="Erreur", message="I/O error")
+        e.lbl_txt["text"] = "I/O error"
+        return False
+
+def export_to_csv(dict_data,e):
+    """Fonction export au format tsv"""
+    # Export au format TSV
+    csv_columns = ["mnemonique","adresse","variable","remarque"]
+    try:
+        with open(e.path, "w") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=csv_columns, delimiter="\t")
+            for data in dict_data:
+                writer.writerow(data)
+            e.lbl_txt["text"] = "Traitement fini : "+e.path
+            tk.messagebox.showinfo(title="Traitement fini", message="Fichier généré : "+e.path)
+            return True
+    except IOError:
+        tk.messagebox.showinfo(title="Erreur", message="I/O error")
+        e.lbl_txt["text"] = "I/O error"
+        return False
+       
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
     app = App()
