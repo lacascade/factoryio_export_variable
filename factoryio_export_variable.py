@@ -128,7 +128,7 @@ class App(tk.Tk):
 
     def openFile(self):
         self.filepath = filedialog.askopenfilename(filetypes=[("text files",".factoryio")])
-        self.lbl_export["text"] = "3. Fichier sélectionné : "+self.filepath
+        self.lbl_file["text"] = "3. Fichier sélectionné : "+self.filepath
         
     def export(self):
         self.path = filedialog.asksaveasfilename(filetypes=brand_name_export[brand_name]["filetypes"],defaultextension=brand_name_export[brand_name]["defaultextension"])
@@ -138,13 +138,20 @@ class App(tk.Tk):
         with open(self.filepath, "r", encoding="utf-8-sig") as FILE:
             try:
                 content = parse_xml_drivers(FILE)
+                retour_export = False
                 # Export des variables
                 if(brand_name == "Schneider"):
-                    export_to_csv(content,self)
+                    retour_export = export_to_csv(content,self)
                 if(brand_name == "PCVUE/XML"):
-                    export_to_PCVUE(content,self)
+                    retour_export = export_to_PCVUE(content,self)
                 if(brand_name == "JSON"):
-                    export_to_json(content,self)
+                    retour_export = export_to_json(content,self)
+                if(retour_export):
+                    self.lbl_txt["text"] = "Traitement fini : "+self.path
+                    tk.messagebox.showinfo(title="Traitement fini", message="Fichier généré : "+self.path)
+                else:
+                    tk.messagebox.showinfo(title="Erreur", message="I/O error")
+                    self.lbl_txt["text"] = "I/O error"
                 return True
             except IndexError:
                 tk.messagebox.showinfo(title="Erreur", message="Problème XML")
@@ -244,11 +251,9 @@ def export_to_PCVUE(dict_data,e):
         pcvue_collection[0].appendChild( newItem )
     try:
         with open(e.path, "w") as xmlfile:
-            xmldoc.writexml(xmlfile)
+            xmldoc.writexml(xmlfile,encoding="utf-8")
             return True
     except IOError:
-        tk.messagebox.showinfo(title="Erreur", message="I/O error")
-        e.lbl_txt["text"] = "I/O error"
         return False
  
 def export_to_json(dict_data,e):
@@ -258,8 +263,6 @@ def export_to_json(dict_data,e):
             json.dump(dict_data, outfile)
             return True
     except IOError:
-        tk.messagebox.showinfo(title="Erreur", message="I/O error")
-        e.lbl_txt["text"] = "I/O error"
         return False
 
 def export_to_csv(dict_data,e):
@@ -271,12 +274,8 @@ def export_to_csv(dict_data,e):
             writer = csv.DictWriter(csvfile, fieldnames=csv_columns, delimiter="\t")
             for data in dict_data:
                 writer.writerow(data)
-            e.lbl_txt["text"] = "Traitement fini : "+e.path
-            tk.messagebox.showinfo(title="Traitement fini", message="Fichier généré : "+e.path)
             return True
     except IOError:
-        tk.messagebox.showinfo(title="Erreur", message="I/O error")
-        e.lbl_txt["text"] = "I/O error"
         return False
        
 #------------------------------------------------------------------------------
