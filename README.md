@@ -16,8 +16,20 @@
 ![End](/images/interface_fin.png)
 * import the .txt file as the table variable in EcoStruxure
 
+# Update 2020/03/26 :
+Possibility of exporting to PCVUE and JSON format.
+For PCVUE :
+* generate the xml file (PCVUE entry)
+* open PCVUE, select in the menu bar "Configuration / Smart Generators"
+![Menu Bar](/images/pcvue_smart_generator.png)
+* in the dialog box, select "Nouvel import"
+![Nouvel import](/images/pcvue_select_xml_import.png)
+* choose a name for your import and select the xml file previously generated
+![Smart generator](/images/pcvue_smart_generator_xml.png)
+* variables have been added to your project
+![Final import](/images/pcvue_import_final.png)
 
-
+For PCVUE the variable type is measure by default, for "BOOL" or "EBOOL" type it's bit.
 
 
 What is not currently not working efficiently is the adress of variables.
